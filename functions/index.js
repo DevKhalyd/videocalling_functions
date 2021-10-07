@@ -6,25 +6,32 @@
 
 // Examples:
 // https://firebase.google.com/docs/firestore/extend-with-functions#specific-documents
-const functions = require("firebase-functions");
-
-// The Firebase Admin SDK to access Firestore.
 const admin = require('firebase-admin');
+const functions = require("firebase-functions");
+const { encryptPassword } = require("./utils/utils");
+// The Firebase Admin SDK to access Firestore.
 admin.initializeApp();
 
 const usersCollection = 'users'
+const usernamesUnavaible = 'usernames_unavaible'
 
-// Listens for new messages added to users collection
-// Then
+// TODO: Test just the functions no the firestore. Configure the emulators.
+// TODO: Use https://cloud.google.com/functions/docs/configuring/env-var
+// When a new user is created in the collections $usersCollection the password is encrypted.
+// Then adds a new document to $usernamesUnavaible.
 exports.encryptUserPassword = functions.firestore.document(`/${usersCollection}/{documentId}`)
     .onCreate((snap, _) => {
         const data = snap.data();
-        let password = data.password;
-        password = `${password}-encrypt this one`
-        functions.logger.log('Data in the map', data);
-        // You must return a Promise when performing asynchronous tasks inside of Functions.
-        // TODO: Add to the collections usernames this username as busy
-        return snap.ref.update({ password });
+        const password = data.password;
+        const username = data.username;
+        encryptPassword(password, (err, newPassword) => {
+            functions.logger.log('EncryptedPassword: ', newPassword);
+            if (!err)
+                return snap.ref.update({ newPassword });
+        })
+        functions.logger.log('Adding to a new collection');
+        // Add to the collections usernames this username as unavaible
+        return snap.ref.firestore.collection(usernamesUnavaible).add({ username });
     });
 
 /*
