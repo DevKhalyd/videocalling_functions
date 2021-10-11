@@ -2,11 +2,11 @@
 // https://firebase.google.com/docs/functions/get-started#set-up-node.js-and-the-firebase-cli
 
 // Java Error:
-//https://stackoverflow.com/questions/56819840/firebase-cloud-functions-emulator-throws-exited-with-code-1-error
+// https://stackoverflow.com/questions/56819840/firebase-cloud-functions-emulator-throws-exited-with-code-1-error
 
 // Examples:
 // https://firebase.google.com/docs/firestore/extend-with-functions#specific-documents
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const { encryptPassword } = require("./utils/utils");
 // The Firebase Admin SDK to access Firestore.
@@ -17,9 +17,11 @@ const usernamesUnavaible = 'usernames_unavaible'
 
 // TODO: Test just the functions no the firestore. Configure the emulators.
 // TODO: Use https://cloud.google.com/functions/docs/configuring/env-var
+
 // When a new user is created in the collections $usersCollection the password is encrypted.
-// Then adds a new document to $usernamesUnavaible.
-exports.encryptUserPassword = functions.firestore.document(`/${usersCollection}/{documentId}`)
+// Also  adds a new document to $usernamesUnavaible collection to identify if the username is duplicated.
+// Lastly, add a new param in the user to search for array and fetch the user that contains that characters.
+exports.updateUser = functions.firestore.document(`/${usersCollection}/{documentId}`)
     .onCreate((snap, _) => {
         const data = snap.data();
         const password = data.password;
@@ -31,7 +33,10 @@ exports.encryptUserPassword = functions.firestore.document(`/${usersCollection}/
         })
         functions.logger.log('Adding to a new collection');
         // Add to the collections usernames this username as unavaible
-        return snap.ref.firestore.collection(usernamesUnavaible).add({ username });
+        snap.ref.firestore.collection(usernamesUnavaible).add({ username });
+
+        functions.logger.log('Lastly, converto to a list');
+        return snap.ref.set({ username_query: username.split('') }, { merge: true });
     });
 
 /*
